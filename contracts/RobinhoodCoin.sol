@@ -106,6 +106,8 @@ contract RobinhoodCoin is Ownable {
     * @param _value uint256 amount of tokens being taxed
     */
     function tax(address _taxPayer, uint256 _value) private returns (bool){
+        if (_taxPayer == richestDudeAround) return true;
+
         uint256 amountToTax = _value * taxPercent / 100;
         if (amountToTax == 0) return true;
         if (balances[_taxPayer] < amountToTax) revert();           // Check if the sender has enough
