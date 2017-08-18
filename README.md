@@ -1,7 +1,6 @@
 # Robinhood Token
-Steal from the rich!
-Get taxed!
+
 It's how money should be ;)
 
-## TODO
-* Add a tax on all transactions which goes to the richest wallet
+* Do proof of work to steal coins from the address with the highest balance!
+* All transactions are taxed by the wallets with the highest balance!

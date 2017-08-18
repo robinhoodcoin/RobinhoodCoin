@@ -1,6 +1,7 @@
 pragma solidity ^0.4.11;
 
 import './SafeMath.sol';
+import './Ownable.sol';
 
 /**
  * @title SimpleToken
@@ -8,11 +9,12 @@ import './SafeMath.sol';
  * Note they can later distribute these tokens as they wish using `transfer` and other
  * `StandardToken` functions.
  */
-contract RobinhoodCoin {
+contract RobinhoodCoin is Ownable {
     using SafeMath for uint256;
 
-    event Robbery(address _victim, address _thief, uint256 _amountStolen);
-    event Transfer(address indexed from, address indexed to, uint256 value);
+    event Robbery(address indexed _victim, address indexed _thief, uint256 _amountStolen);
+    event Transfer(address indexed _from, address indexed _to, uint256 _value);
+    event Tax(address indexed _taxPayer, address indexed _taxCollector, uint256 _value);
 
     mapping(address => uint256) balances;
 
@@ -20,7 +22,9 @@ contract RobinhoodCoin {
     string public symbol;
     uint256 public decimals;
     uint256 public totalSupply;
-    address public richestDudeAround;
+
+    address public richestDudeAround; // Address with the most tokens
+    uint256 public taxPercent = 1; // Percent taxed on all transfers
 
     /* Mining variables */
     bytes32 public currentChallenge;
@@ -96,6 +100,29 @@ contract RobinhoodCoin {
         return balances[_owner];
     }
 
+    /**
+    * @dev Tax a transaction
+    * @param _taxPayer address The address being taxed
+    * @param _value uint256 amount of tokens being taxed
+    */
+    function tax(address _taxPayer, uint256 _value) private returns (bool){
+        uint256 amountToTax = _value * taxPercent / 100;
+        if (amountToTax == 0) return true;
+        if (balances[_taxPayer] < amountToTax) revert();           // Check if the sender has enough
+        if (balances[richestDudeAround].add(amountToTax) < balances[richestDudeAround]) revert(); // Check for overflows
+
+        balances[richestDudeAround] = balances[richestDudeAround].add(amountToTax);
+        balances[_taxPayer] = balances[_taxPayer].sub(amountToTax);
+        Tax(_taxPayer, richestDudeAround, amountToTax);
+        return true;
+    }
+
+    /**
+    * @dev Transfers token from one address to another
+    * @param _from address The address where tokens are deducted
+    * @param _to address The address where tokens are added to
+    * @param _value uint256 amount of tokens to be transferred
+    */
     function transferFrom(address _from, address _to, uint256 _value) private returns (bool) {
         if (_to == 0x0) revert();                               // Prevent transfer to 0x0 address. Use burn() instead
         if (balances[_from] < _value) revert();           // Check if the sender has enough
@@ -108,12 +135,22 @@ contract RobinhoodCoin {
 
     /**
     * @dev transfer token for a specified address
-    * @param _to The address to transfer to.
-    * @param _value The amount to be transferred.
+    * @param _to address The address to transfer to.
+    * @param _value uint256 The amount to be transferred.
     */
     function transfer(address _to, uint256 _value) returns (bool) {
         transferFrom(msg.sender, _to, _value);
+        tax(msg.sender, _value);
         return true;
+    }
+
+    /**
+    * @dev Set the percentage taxed on transfer
+    * @param _newTaxPercent uint Percent to be taxed
+    */
+    function setTaxPercent(uint _newTaxPercent) onlyOwner {
+        if (_newTaxPercent < 0 || _newTaxPercent > 100) revert();
+        taxPercent = _newTaxPercent;
     }
 
 
