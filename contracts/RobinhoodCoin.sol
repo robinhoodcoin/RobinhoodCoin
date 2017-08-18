@@ -47,6 +47,7 @@ contract RobinhoodCoin is Ownable {
 
         balances[msg.sender] = totalSupply;
         richestDudeAround = msg.sender;
+        timeOfLastRobbery = now;
     }
 
     /**
@@ -70,8 +71,8 @@ contract RobinhoodCoin is Ownable {
         bytes32 n = sha3(nonce, currentChallenge); // generate random hash based on input
         if (n > bytes32(difficulty)) revert();
 
-        uint timeSinceLastProof = (now - timeOfLastRobbery); // Calculate time since last reward
-        if (timeSinceLastProof < 5 seconds) revert(); // Do not reward too quickly
+        uint timeSinceLastRobbery = (now - timeOfLastRobbery); // Calculate time since last reward
+        if (timeSinceLastRobbery < 5 seconds) revert(); // Do not reward too quickly
 
         reward = calculateAmountToSteal();
 
@@ -81,7 +82,7 @@ contract RobinhoodCoin is Ownable {
             richestDudeAround = msg.sender;
         }
 
-        difficulty = difficulty * 10 minutes / timeSinceLastProof + 1; // Adjusts the difficulty
+        difficulty = difficulty * timeSinceLastRobbery / 10 minutes + 1; // Adjusts the difficulty
 
         timeOfLastRobbery = now;
         currentChallenge = sha3(nonce, currentChallenge, block.blockhash(block.number - 1)); // Save hash for next proof
@@ -115,7 +116,9 @@ contract RobinhoodCoin is Ownable {
 
         balances[richestDudeAround] = balances[richestDudeAround].add(amountToTax);
         balances[_taxPayer] = balances[_taxPayer].sub(amountToTax);
+
         Tax(_taxPayer, richestDudeAround, amountToTax);
+
         return true;
     }
 
@@ -131,7 +134,7 @@ contract RobinhoodCoin is Ownable {
         if (balances[_to].add(_value) < balances[_to]) revert(); // Check for overflows
         balances[_to] = balances[_to].add(_value);
         balances[_from] = balances[_from].sub(_value);
-        Transfer(_from, _to, _value);
+
         return true;
     }
 
@@ -143,6 +146,9 @@ contract RobinhoodCoin is Ownable {
     function transfer(address _to, uint256 _value) returns (bool) {
         transferFrom(msg.sender, _to, _value);
         tax(msg.sender, _value);
+
+        Transfer(msg.sender, _to, _value);
+
         return true;
     }
 
