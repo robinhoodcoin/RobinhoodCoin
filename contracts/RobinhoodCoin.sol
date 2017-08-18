@@ -68,6 +68,8 @@ contract RobinhoodCoin is Ownable {
      * @return uint The amount rewarded
      */
     function TakeFromTheRich(uint nonce) returns (uint256 reward) {
+        if (richestDudeAround == msg.sender) revert(); // Can't steal from yourself
+
         bytes32 n = sha3(nonce, currentChallenge); // generate random hash based on input
         if (n > bytes32(difficulty)) revert();
 
