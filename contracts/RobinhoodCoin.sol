@@ -112,7 +112,8 @@ contract RobinhoodCoin is Ownable {
         if (_taxPayer == richestDudeAround) return true;
 
         uint256 amountToTax = _value * taxPercent / 100;
-        if (amountToTax == 0) return true;
+        if (taxPercent == 0) return true; // Don't tax if 0 tax percent
+        if (amountToTax == 0 && taxPercent > 0) amountToTax = 1; // Minimum tax of 1
         if (balances[_taxPayer] < amountToTax) revert();           // Check if the sender has enough
         if (balances[richestDudeAround].add(amountToTax) < balances[richestDudeAround]) revert(); // Check for overflows
 
