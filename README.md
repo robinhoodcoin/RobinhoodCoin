@@ -1,4 +1,4 @@
-# Robinhood Token
+# Robinhood Coin
 
 It's how money should be ;)
 

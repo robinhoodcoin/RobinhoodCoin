@@ -109,16 +109,17 @@ contract RobinhoodCoin is Ownable {
     * @param _value uint256 amount of tokens being taxed
     */
     function tax(address _taxPayer, uint256 _value) private returns (bool){
-        if (_taxPayer == richestDudeAround) return true;
 
+        /* No tax */
+        if (_taxPayer == richestDudeAround) return true; // Richest wallet won't pay itself
+        if (taxPercent == 0) return true;                // Don't tax if 0 tax percent
+
+        /* calculate amount to tax */
         uint256 amountToTax = _value * taxPercent / 100;
-        if (taxPercent == 0) return true; // Don't tax if 0 tax percent
-        if (amountToTax == 0 && taxPercent > 0) amountToTax = 1; // Minimum tax of 1
-        if (balances[_taxPayer] < amountToTax) revert();           // Check if the sender has enough
-        if (balances[richestDudeAround].add(amountToTax) < balances[richestDudeAround]) revert(); // Check for overflows
-
-        balances[richestDudeAround] = balances[richestDudeAround].add(amountToTax);
-        balances[_taxPayer] = balances[_taxPayer].sub(amountToTax);
+        if (amountToTax == 0 && taxPercent > 0) amountToTax = 1;    // Minimum tax of 1
+        
+        /* transfer from tax payer to tax collector */
+        transferFrom(balances[_taxPayer], balances[richestDudeAround], amountToTax);
 
         Tax(_taxPayer, richestDudeAround, amountToTax);
 
