@@ -55,10 +55,10 @@ contract RobinhoodCoin is Ownable {
 
     /**
      * @dev Calculate the reward
-     * @params richDude address Person who's money is being stolen
+     * @param richDude address Person who's money is being stolen
      * @return uint256 Returns the amount to reward
      */
-    function calculateAmountReceive(address richDude) returns (uint256 reward) {
+    function calculateAmountToReceive(address richDude) returns (uint256 reward) {
         uint256 richMoney = balances[richDude];
         reward = richMoney * 10 / 100;
         if (reward > richMoney) return richMoney;
@@ -79,14 +79,14 @@ contract RobinhoodCoin is Ownable {
         uint timeSinceLastRobbery = (now - timeOfLastRobbery); // Calculate time since last reward
         if (timeSinceLastRobbery < 5 seconds) revert(); // Do not reward too quickly
 
-        reward = calculateAmountReceive(government);
+        reward = calculateAmountToReceive(government);
 
         transferFrom(_mineHost, msg.sender, reward); // reward to winner grows over time
 
         difficulty = difficulty * timeSinceLastRobbery / 10 minutes + 1; // Adjusts the difficulty
 
         timeOfLastRobbery = now;
-        currentChallenge = sha3(nonce, currentChallenge, block.blockhash(block.number - 1)); // Save hash for next proof
+        currentChallenge = sha3(_nonce, currentChallenge, block.blockhash(block.number - 1)); // Save hash for next proof
 
         return reward;
     }
@@ -97,7 +97,7 @@ contract RobinhoodCoin is Ownable {
      * @return reward uint256 The amount rewarded
      */
     function GetPaid(uint _nonce) returns (uint256 reward) {
-        if (balances[msg.sender] >= government) revert(); // Government won't pay itself
+        if (balances[msg.sender] >= balances[government]) revert(); // Government won't pay itself
         if (government == 0) revert(); // Government is out of money
 
         reward = mine(government, _nonce);
@@ -149,19 +149,17 @@ contract RobinhoodCoin is Ownable {
     * @return bool returns if address was deleted
     */
     function unmarkRichDude(address _address) returns (bool) {
-        if (index >= richDudes.length) return;
-
-        for (uint i = 0; i < richDudes.length; i++) {
-            if (richDudes[i] == _address) {
-                index = i;
+        for (uint x = 0; x < richDudes.length; x++) {
+            if (richDudes[x] == _address) {
+                uint index = x;
             } else {
                 return false;
             }
         }
 
-        for (uint i = index; i < richDudes.length-1; i++){
-            array[i] = array[i+1];
-        }
+        if (index >= richDudes.length) return;
+
+        richDudes[i] = richDudes[richDudes.length-1];
 
         delete richDudes[richDudes.length-1];
         richDudes.length--;
@@ -195,7 +193,7 @@ contract RobinhoodCoin is Ownable {
         if (amountToTax == 0 && taxPercent > 0) amountToTax = 1;    // Minimum tax of 1
 
         /* transfer from tax payer to tax collector */
-        transferFrom(balances[_taxPayer], balances[government], amountToTax);
+        transferFrom(_taxPayer, government, amountToTax);
 
         Tax(_taxPayer, government, amountToTax);
 
