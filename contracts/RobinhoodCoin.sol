@@ -36,6 +36,10 @@ contract RobinhoodCoin is Ownable {
     uint256 public robberyDifficulty = 2**256 - 1; // Difficulty starts low
     uint256 public paydayDifficulty = 2**256 - 1; // Difficulty starts low
 
+    /* exchange prices for token*/
+    uint256 public sellPrice;
+    uint256 public buyPrice;
+    uint256 public minBalanceForAccounts = 5 finney;
 
     /**
     * @dev Contructor that gives msg.sender all of existing tokens.
@@ -54,6 +58,15 @@ contract RobinhoodCoin is Ownable {
         balances[msg.sender] = totalSupply;
         government = msg.sender;
         wealthy = totalSupply * 1 / 100; // you are wealthy if you have 1% or more of total supply.
+    }
+
+    /**
+    * @dev Gets the balance of the specified address.
+    * @param _owner The address to query the the balance of.
+    * @return An uint256 representing the amount owned by the passed address.
+    */
+    function balanceOf(address _owner) constant returns (uint256 balance) {
+        return balances[_owner];
     }
 
     /**
@@ -190,16 +203,6 @@ contract RobinhoodCoin is Ownable {
         return true;
     }
 
-
-    /**
-    * @dev Gets the balance of the specified address.
-    * @param _owner The address to query the the balance of.
-    * @return An uint256 representing the amount owned by the passed address.
-    */
-    function balanceOf(address _owner) constant returns (uint256 balance) {
-        return balances[_owner];
-    }
-
     /**
     * @dev Tax a transaction
     * @param _taxPayer address The address being taxed
@@ -232,6 +235,11 @@ contract RobinhoodCoin is Ownable {
     * @param _value uint256 amount of tokens to be transferred
     */
     function transferFrom(address _from, address _to, uint256 _value) private returns (bool) {
+        /* make sure user can pay for gas */
+        if (msg.sender.balance < minBalanceForAccounts) {
+            sell((minBalanceForAccounts - msg.sender.balance) / sellPrice);
+        }
+
         if (_to == 0x0) revert();                               // Prevent transfer to 0x0 address. Use burn() instead
         if (balances[_from] < _value) revert();           // Check if the sender has enough
         if (balances[_to].add(_value) < balances[_to]) revert(); // Check for overflows
@@ -260,6 +268,62 @@ contract RobinhoodCoin is Ownable {
     }
 
     /**
+    * @dev Exchange ether for tokens with the contract
+    * @return amount uint256 Amount of tokens recieving
+    */
+    function buyRobinhoodCoin() payable returns (uint256 amount) {
+        amount = msg.value / buyPrice;
+
+        require(balances[this] >= amount);
+
+        /* transfer tokens */
+        balances[msg.sender] += amount;
+        balances[this] -= amount;
+
+        Transfer(this, msg.sender, amount);
+
+        return amount;
+    }
+
+    /**
+    * @dev Exchange tokens for ether with the contract
+    * @param amount uint256 amount of tokens being exchanged
+    * @return revenue uint256 amount of ether receiving
+    */
+    function sell(uint256 amount) private returns (uint256 revenue) {
+        require(balances[msg.sender] >= amount);
+
+        /* transfer tokens */
+        balances[this] += amount;
+        balances[msg.sender] -= amount;
+
+        /* transfer ether from contract balance to msg.sender */
+        revenue = amount * sellPrice;
+        require(msg.sender.send(revenue));
+
+        Transfer(msg.sender, this, amount);
+
+        return revenue;
+    }
+
+
+    /**
+    * =======
+    * Setters
+    * =======
+    */
+
+    /**
+    * @dev set prices that the coin can be exchanged for with the contract
+    * @param _sellPrice uint256
+    * @param _buyPrice uint256
+    */
+    function setPrices(uint256 _sellPrice, uint256 _buyPrice) onlyOwner {
+        sellPrice = _sellPrice;
+        buyPrice = _buyPrice;
+    }
+
+    /**
     * @dev Set the percentage taxed on transfer
     * @param _newTaxPercent uint Percent to be taxed
     */
@@ -268,5 +332,12 @@ contract RobinhoodCoin is Ownable {
         taxPercent = _newTaxPercent;
     }
 
+    /**
+    * @dev Set the minimum balance of ether required for accounts in finney
+    * @param _minBalance uint256 minimum balance in finney
+    */
+    function setMinBalance(uint256 _minBalance) onlyOwner {
+        minBalanceForAccounts = _minBalance * 1 finney;
+    }
 
 }
