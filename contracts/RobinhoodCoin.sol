@@ -28,6 +28,7 @@ contract RobinhoodCoin is Ownable {
     address public government;  // Address that collects the tax
     uint256 public taxPercent = 1; // Percent taxed on all transfers
     uint256 wealthy;            // Minimum amount to be considered wealthy
+    uint256 public baseWage = 1000; // Amount received from government mine
 
     /* Mining variables */
     bytes32 public currentChallenge;
@@ -37,8 +38,8 @@ contract RobinhoodCoin is Ownable {
     uint256 public paydayDifficulty = 2**256 - 1; // Difficulty starts low
 
     /* exchange prices for token*/
-    uint256 public sellPrice;
-    uint256 public buyPrice;
+    uint256 public sellPrice = 1 finney;
+    uint256 public buyPrice = 1 finney;
     uint256 public minBalanceForAccounts = 5 finney;
 
     /**
@@ -55,8 +56,10 @@ contract RobinhoodCoin is Ownable {
         decimals = _decimals;
         totalSupply = _totalSupply;
 
-        balances[msg.sender] = totalSupply;
-        government = msg.sender;
+        balances[this] = totalSupply/2;
+        balances[msg.sender] = totalSupply/2;
+        richDudes.push(msg.sender);
+        government = this;
         wealthy = totalSupply * 1 / 100; // you are wealthy if you have 1% or more of total supply.
     }
 
@@ -74,9 +77,14 @@ contract RobinhoodCoin is Ownable {
      * @param _mineHost address Person who's money is being stolen
      * @return uint256 Returns the amount to reward
      */
-    function calculateAmountToReceive(address _mineHost) returns (uint256 reward) {
+    function calculateAmountToReceive(address _mineHost) private returns (uint256) {
+        if (_mineHost == government) return baseReward;
+
         uint256 amountToRecieve = balances[_mineHost];
-        reward = amountToRecieve * 10 / 100;
+        uint256 baseReward = amountToRecieve * 1 / 100;
+        uint256 maxAddition = amountToRecieve * 99 / 100;
+        uint256 addition = (msg.value < maxAddition) ? msg.value/buyPrice : maxAddition;
+        uint256 reward = baseReward + addition;
         if (reward > amountToRecieve) return amountToRecieve;
 
         return reward;
@@ -147,7 +155,7 @@ contract RobinhoodCoin is Ownable {
      * @param _nonce uint
      * @return reward uint256 The amount rewarded
      */
-    function TakeFromTheRich(uint _nonce) returns (uint256 reward) {
+    function TakeFromTheRich(uint _nonce) payable returns (uint256 reward) {
         /* Cancel mine */
         if (balances[msg.sender] >= wealthy) revert(); // Rich can't steal from the rich
         if (richDudes.length < 1) revert(); // There's no rich dudes
@@ -161,6 +169,9 @@ contract RobinhoodCoin is Ownable {
         /* Update who's rich */
         if (balances[msg.sender] >= wealthy) richDudes.push(msg.sender);                              // msg.sender is now wealthy?
         if (balances[richDude] < wealthy) unmarkRichDude(richDude);       // Rich dude is no longer wealthy?
+
+        /* send the ether to the rich dude */
+        richDude.transfer(msg.value);
 
         Robbery(richDude, msg.sender, reward); // execute an event reflecting the change
 
@@ -185,7 +196,7 @@ contract RobinhoodCoin is Ownable {
     * @param _address address The address to be removed from richDudes array
     * @return bool returns if address was deleted
     */
-    function unmarkRichDude(address _address) returns (bool) {
+    function unmarkRichDude(address _address) private returns (bool) {
         /* find where address is in rich array */
         for (uint x = 0; x < richDudes.length; x++) {
             if (richDudes[x] == _address) {
@@ -290,7 +301,7 @@ contract RobinhoodCoin is Ownable {
     * @param amount uint256 amount of tokens being exchanged
     * @return revenue uint256 amount of ether receiving
     */
-    function sell(uint256 amount) private returns (uint256 revenue) {
+    function sell(uint256 amount) private returns (uint256 _weiGained) {
         require(balances[msg.sender] >= amount);
 
         /* transfer tokens */
@@ -298,14 +309,21 @@ contract RobinhoodCoin is Ownable {
         balances[msg.sender] -= amount;
 
         /* transfer ether from contract balance to msg.sender */
-        revenue = amount * sellPrice;
-        require(msg.sender.send(revenue));
+        _weiGained = amount * sellPrice;
+        require(msg.sender.send(_weiGained));
 
         Transfer(msg.sender, this, amount);
 
-        return revenue;
+        return _weiGained;
     }
 
+    /**
+    * @dev Amount of ether to withdraw from contract in wei
+    * @return amount uint256 Amount of ether in wei
+    */
+    function withdrawEther(uint256 _wei) onlyOwner {
+        require(msg.sender.send(_wei));
+    }
 
     /**
     * =======
