@@ -78,7 +78,7 @@ contract RobinhoodCoin is Ownable {
      * @return uint256 Returns the amount to reward
      */
     function calculateAmountToReceive(address _mineHost) private returns (uint256) {
-        if (_mineHost == government) return baseReward;
+        if (_mineHost == government) return baseWage;
 
         uint256 amountToRecieve = balances[_mineHost];
         uint256 baseReward = amountToRecieve * 1 / 100;
