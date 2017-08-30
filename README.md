@@ -1,10 +1,16 @@
 # Robinhood Coin
 
-It's how money should be ;)
+Robinhood Coin has an eco system of 3 players:
 
-* Do proof of work to steal coins from the addresses with the high balances!
-* Do proof of work to earn coin from the government wallet!
-* All transactions are taxed by the government wallet!
+Government, Regular people, Rich People
+
+* A rich person is someone who has at least 1 percent of total Supply
+* You can Mine from the Government (Get Paid)
+* You can Mine from the Rich People (Take from the Rich)
+* You can transfer tokens
+* You can buy tokens from the government
+* You can put ether into taking from the rich to take more from them
+* Every Transfer call taxes your wallet and sends that tax to the government
 
 ## TODO
 
