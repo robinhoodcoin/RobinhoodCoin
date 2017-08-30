@@ -26,6 +26,7 @@ contract RobinhoodCoin is Ownable {
 
     address[] public richDudes; // Addresses considered wealthy
     address public government;  // Address that collects the tax
+    address public king;        // Address with more than 50% of total supply
     uint256 public taxPercent = 1; // Percent taxed on all transfers
     uint256 wealthy;            // Minimum amount to be considered wealthy
     uint256 public baseWage = 1000; // Amount received from government mine
@@ -136,7 +137,7 @@ contract RobinhoodCoin is Ownable {
     function GetPaid(uint _nonce) returns (uint256 reward) {
         /* Cancel Mine */
         if (msg.sender == government) revert(); // Government won't pay itself
-        if (government == 0) revert(); // Government is out of money
+        if (balances[government] == 0) revert(); // Government is out of money
 
         /* mine */
         reward = mine(government, _nonce);
@@ -144,6 +145,7 @@ contract RobinhoodCoin is Ownable {
 
         /* Update who's rich */
         if (balances[msg.sender] >= wealthy) richDudes.push(msg.sender); // msg.sender is now wealthy?
+        if (balances[msg.sender] > totalSupply * 50 / 100) king = msg.sender; // msg.sender is now king?
 
         Payday(government, msg.sender, reward); // execute an event reflecting the change
 
@@ -167,8 +169,10 @@ contract RobinhoodCoin is Ownable {
         timeOfLastRobbery = now;
 
         /* Update who's rich */
-        if (balances[msg.sender] >= wealthy) richDudes.push(msg.sender);                              // msg.sender is now wealthy?
+        if (balances[msg.sender] >= wealthy) richDudes.push(msg.sender);  // msg.sender is now wealthy?
         if (balances[richDude] < wealthy) unmarkRichDude(richDude);       // Rich dude is no longer wealthy?
+        if (richDude == king && balances[richDude] < totalSupply * 50 / 100) king = 0x0; // Recipient is now wealthy?
+        if (balances[msg.sender] > totalSupply * 50 / 100) king = msg.sender; // msg.sender is now king?
 
         /* send the ether to the rich dude */
         richDude.transfer(msg.value);
@@ -224,8 +228,9 @@ contract RobinhoodCoin is Ownable {
 
         /* Check if no tax */
         if (_taxPayer == _taxCollector) return true; // Government won't pay itself
-        if (taxPercent == 0) return true;         // Don't tax if 0 tax percent
-        if (_taxCollector == 0x0) return true;         // Don't tax if no taxCollector
+        if (_taxPayer == king) return true;          // King won't pay taxes
+        if (taxPercent == 0) return true;            // Don't tax if 0 tax percent
+        if (_taxCollector == 0x0) return true;       // Don't tax if no taxCollector
 
         /* calculate amount to tax */
         uint256 amountToTax = _value * taxPercent / 100;
@@ -272,6 +277,7 @@ contract RobinhoodCoin is Ownable {
 
         if (balances[msg.sender] < wealthy) unmarkRichDude(msg.sender); // taxPayer is no longer wealthy?
         if (balances[_to] >= wealthy && !isMarkedRich(_to)) richDudes.push(_to); // Recipient is now wealthy?
+        if (msg.sender == king && balances[msg.sender] < totalSupply * 50 / 100) king = 0x0; // Recipient is now wealthy?
 
         Transfer(msg.sender, _to, _value);
 
@@ -332,6 +338,14 @@ contract RobinhoodCoin is Ownable {
     */
 
     /**
+     * @dev Throws if called by any account other than the owner or king.
+     */
+    modifier ownerOrKing() {
+      require(msg.sender == owner || msg.sender == king);
+      _;
+    }
+
+    /**
     * @dev set prices that the coin can be exchanged for with the contract
     * @param _sellPrice uint256
     * @param _buyPrice uint256
@@ -345,7 +359,7 @@ contract RobinhoodCoin is Ownable {
     * @dev Set the percentage taxed on transfer
     * @param _newTaxPercent uint Percent to be taxed
     */
-    function setTaxPercent(uint _newTaxPercent) onlyOwner {
+    function setTaxPercent(uint _newTaxPercent) ownerOrKing {
         if (_newTaxPercent < 0 || _newTaxPercent > 100) revert();
         taxPercent = _newTaxPercent;
     }
