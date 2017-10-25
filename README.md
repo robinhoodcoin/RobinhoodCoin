@@ -1,5 +1,7 @@
 # Robinhood Coin
 
+[Robinhood Coin Homepage](http://robinhoodcoin.net)
+
 Robinhood Coin has an eco system of 4 players:
 
 Government, Peasants, Rich People, King
@@ -13,8 +15,3 @@ Government, Peasants, Rich People, King
 * Every Transfer call taxes your wallet and sends that tax to the government
 * A king is someone who has more than 50% of total supply of tokens
 * A king may change the tax percent and is not taxed for transfers
-
-## TODO
-
-* Write miner
-* Write wallet
