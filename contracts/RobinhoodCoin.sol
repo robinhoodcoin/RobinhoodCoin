@@ -1,13 +1,11 @@
-pragma solidity ^0.4.11;
+pragma solidity ^0.4.13;
 
 import './SafeMath.sol';
 import './Ownable.sol';
 
 /**
- * @title SimpleToken
- * @dev Very simple ERC20 Token example, where all tokens are pre-assigned to the creator.
- * Note they can later distribute these tokens as they wish using `transfer` and other
- * `StandardToken` functions.
+ * @title RobinhoodCoin
+ * @dev Really cool C
  */
 contract RobinhoodCoin is Ownable {
     using SafeMath for uint256;
@@ -51,7 +49,7 @@ contract RobinhoodCoin is Ownable {
         string _symbol,
         uint256 _decimals,
         uint256 _totalSupply
-    ) {
+    ) public {
         name = _name;
         symbol = _symbol;
         decimals = _decimals;
@@ -69,7 +67,7 @@ contract RobinhoodCoin is Ownable {
     * @param _owner The address to query the the balance of.
     * @return An uint256 representing the amount owned by the passed address.
     */
-    function balanceOf(address _owner) constant returns (uint256 balance) {
+    function balanceOf(address _owner) public view returns (uint256 balance) {
         return balances[_owner];
     }
 
@@ -78,7 +76,7 @@ contract RobinhoodCoin is Ownable {
      * @param _mineHost address Person who's money is being stolen
      * @return uint256 Returns the amount to reward
      */
-    function calculateAmountToReceive(address _mineHost) private returns (uint256) {
+    function calculateAmountToReceive(address _mineHost) private view returns (uint256) {
         if (_mineHost == government) return baseWage;
 
         uint256 amountToRecieve = balances[_mineHost];
@@ -112,7 +110,7 @@ contract RobinhoodCoin is Ownable {
             revert();
         }
 
-        bytes32 n = sha3(_nonce, currentChallenge); // generate random hash based on input
+        bytes32 n = keccak256(_nonce, currentChallenge); // generate random hash based on input
         if (n > bytes32(difficulty)) revert();
 
         uint timeSinceLastMine = (now - timeOfLastMine); // Calculate time since last reward
@@ -124,7 +122,7 @@ contract RobinhoodCoin is Ownable {
 
         difficulty = difficulty * timeSinceLastMine / 10 minutes + 1; // Adjusts the difficulty
 
-        currentChallenge = sha3(_nonce, currentChallenge, block.blockhash(block.number - 1)); // Save hash for next proof
+        currentChallenge = keccak256(_nonce, currentChallenge, block.blockhash(block.number - 1)); // Save hash for next proof
 
         return reward;
     }
@@ -134,7 +132,7 @@ contract RobinhoodCoin is Ownable {
      * @param _nonce uint
      * @return reward uint256 The amount rewarded
      */
-    function GetPaid(uint _nonce) returns (uint256 reward) {
+    function GetPaid(uint _nonce) public returns (uint256 reward) {
         /* Cancel Mine */
         if (msg.sender == government) revert(); // Government won't pay itself
         if (balances[government] == 0) revert(); // Government is out of money
@@ -157,7 +155,7 @@ contract RobinhoodCoin is Ownable {
      * @param _nonce uint
      * @return reward uint256 The amount rewarded
      */
-    function TakeFromTheRich(uint _nonce) payable returns (uint256 reward) {
+    function TakeFromTheRich(uint _nonce) public payable returns (uint256 reward) {
         /* Cancel mine */
         if (balances[msg.sender] >= wealthy) revert(); // Rich can't steal from the rich
         if (richDudes.length < 1) revert(); // There's no rich dudes
@@ -187,7 +185,7 @@ contract RobinhoodCoin is Ownable {
      * @param _address address
      * @return bool if _address is on the list or not
      */
-    function isMarkedRich(address _address) private returns (bool) {
+    function isMarkedRich(address _address) private view returns (bool) {
         for (uint i = 0; i < richDudes.length; i++) {
             if (richDudes[i] == _address) return true;
         }
@@ -270,7 +268,7 @@ contract RobinhoodCoin is Ownable {
     * @param _to address The address to transfer to.
     * @param _value uint256 The amount to be transferred.
     */
-    function transfer(address _to, uint256 _value) returns (bool) {
+    function transfer(address _to, uint256 _value) public returns (bool) {
         transferFrom(msg.sender, _to, _value);
 
         tax(msg.sender, government, _value);
@@ -288,7 +286,7 @@ contract RobinhoodCoin is Ownable {
     * @dev Exchange ether for tokens with the contract
     * @return amount uint256 Amount of tokens recieving
     */
-    function buyRobinhoodCoin() payable returns (uint256 amount) {
+    function buyRobinhoodCoin() public payable returns (uint256 amount) {
         amount = msg.value / buyPrice;
 
         require(balances[this] >= amount);
@@ -327,7 +325,7 @@ contract RobinhoodCoin is Ownable {
     * @dev Amount of ether to withdraw from contract in wei
     * @return amount uint256 Amount of ether in wei
     */
-    function withdrawEther(uint256 _wei) onlyOwner {
+    function withdrawEther(uint256 _wei) public onlyOwner {
         require(msg.sender.send(_wei));
     }
 
@@ -350,7 +348,7 @@ contract RobinhoodCoin is Ownable {
     * @param _sellPrice uint256
     * @param _buyPrice uint256
     */
-    function setPrices(uint256 _sellPrice, uint256 _buyPrice) onlyOwner {
+    function setPrices(uint256 _sellPrice, uint256 _buyPrice) public onlyOwner {
         sellPrice = _sellPrice;
         buyPrice = _buyPrice;
     }
@@ -359,7 +357,7 @@ contract RobinhoodCoin is Ownable {
     * @dev Set the percentage taxed on transfer
     * @param _newTaxPercent uint Percent to be taxed
     */
-    function setTaxPercent(uint _newTaxPercent) ownerOrKing {
+    function setTaxPercent(uint _newTaxPercent) public ownerOrKing {
         if (_newTaxPercent < 0 || _newTaxPercent > 100) revert();
         taxPercent = _newTaxPercent;
     }
@@ -368,7 +366,7 @@ contract RobinhoodCoin is Ownable {
     * @dev Set the minimum balance of ether required for accounts in finney
     * @param _minBalance uint256 minimum balance in finney
     */
-    function setMinBalance(uint256 _minBalance) onlyOwner {
+    function setMinBalance(uint256 _minBalance) public onlyOwner {
         minBalanceForAccounts = _minBalance * 1 finney;
     }
 
