@@ -39,7 +39,7 @@ contract RobinhoodCoin is Ownable {
     /* exchange prices for token*/
     uint256 public sellPrice = 1 finney;
     uint256 public buyPrice = 1 finney;
-    uint256 public minBalanceForAccounts = 5 finney;
+    uint256 private minBalanceForAccounts = 5 finney;
 
     /**
     * @dev Contructor that gives msg.sender all of existing tokens.
@@ -96,19 +96,10 @@ contract RobinhoodCoin is Ownable {
      * @return reward uint256 The amount rewarded
      */
     function mine(address _mineHost, uint _nonce) private returns (uint256 reward) {
-        uint256 difficulty;
-        uint timeOfLastMine;
 
         /* get the mining variables */
-        if (_mineHost == government) {
-            difficulty = paydayDifficulty;
-            timeOfLastMine = timeOfLastPayday;
-        } else if (isMarkedRich(_mineHost)) {
-            difficulty = robberyDifficulty;
-            timeOfLastMine = timeOfLastRobbery;
-        } else {
-            revert();
-        }
+        uint256 difficulty = getDifficultyForMine(_mineHost);
+        uint timeOfLastMine = getTimeOfLastMine(_mineHost);
 
         bytes32 n = keccak256(_nonce, currentChallenge); // generate random hash based on input
         if (n > bytes32(difficulty)) revert();
@@ -121,6 +112,7 @@ contract RobinhoodCoin is Ownable {
         transferFrom(_mineHost, msg.sender, reward); // reward to winner grows over time
 
         difficulty = difficulty * timeSinceLastMine / 10 minutes + 1; // Adjusts the difficulty
+        updateDifficultyForMine(difficulty, _mineHost);
 
         currentChallenge = keccak256(_nonce, currentChallenge, block.blockhash(block.number - 1)); // Save hash for next proof
 
@@ -303,7 +295,7 @@ contract RobinhoodCoin is Ownable {
     /**
     * @dev Exchange tokens for ether with the contract
     * @param amount uint256 amount of tokens being exchanged
-    * @return revenue uint256 amount of ether receiving
+    * @return _weiGained uint256 amount of ether receiving
     */
     function sell(uint256 amount) private returns (uint256 _weiGained) {
         require(balances[msg.sender] >= amount);
@@ -327,6 +319,51 @@ contract RobinhoodCoin is Ownable {
     */
     function withdrawEther(uint256 _wei) public onlyOwner {
         require(msg.sender.send(_wei));
+    }
+
+    /**
+    * @dev Get difficulty for mine
+    * @param _mineHost address Address of mine
+    * @return difficulty uint256 difficulty for mining
+    */
+    function getDifficultyForMine(address _mineHost) private view returns (uint256 difficulty) {
+        if (_mineHost == government) {
+            return paydayDifficulty;
+        } else if (isMarkedRich(_mineHost)) {
+            return robberyDifficulty;
+        } else {
+            revert();
+        }
+    }
+
+    /**
+    * @dev Get Time of last mine event
+    * @param _mineHost address Address of mine
+    * @return time uint256 Time last mined
+    */
+    function getTimeOfLastMine(address _mineHost) private view returns (uint time) {
+        if (_mineHost == government) {
+            return timeOfLastPayday;
+        } else if (isMarkedRich(_mineHost)) {
+            return timeOfLastRobbery;
+        } else {
+            revert();
+        }
+    }
+
+    /**
+    * @dev Update difficulty for mine
+    * @param _difficulty uint256 Address of mine
+    * @param _mineHost address Address of mine
+    */
+    function updateDifficultyForMine(uint256 _difficulty, address _mineHost) private {
+        if (_mineHost == government) {
+            paydayDifficulty = _difficulty;
+        } else if (isMarkedRich(_mineHost)) {
+            robberyDifficulty = _difficulty;
+        } else {
+            revert();
+        }
     }
 
     /**
