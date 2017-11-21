@@ -13,7 +13,7 @@ contract RobinhoodCoin is Ownable {
     event Robbery(address indexed _victim, address indexed _thief, uint256 _amountStolen);
     event Payday(address indexed _government, address indexed _worker, uint256 _amountPaid);
     event Transfer(address indexed _from, address indexed _to, uint256 _value);
-    event Tax(address indexed _taxPayer, address indexed _taxCollector, uint256 _value);
+    event Tax(address indexed _taxPayer, address indexed taxCollector, uint256 _value);
 
     mapping(address => uint256) balances;
 
@@ -211,25 +211,24 @@ contract RobinhoodCoin is Ownable {
     /**
     * @dev Tax a transaction
     * @param _taxPayer address The address being taxed
-    * @param _taxPayer address The address recieving the tax payment
     * @param _value uint256 amount of tokens being taxed
     */
-    function tax(address _taxPayer, address _taxCollector, uint256 _value) private returns (bool){
+    function tax(address _taxPayer, uint256 _value) private returns (bool){
+        address taxCollector = (king == 0x0) ? government : king;
 
         /* Check if no tax */
-        if (_taxPayer == _taxCollector) return true; // Government won't pay itself
-        if (_taxPayer == king) return true;          // King won't pay taxes
+        if (_taxPayer == taxCollector) return true; // Government won't pay itself
         if (taxPercent == 0) return true;            // Don't tax if 0 tax percent
-        if (_taxCollector == 0x0) return true;       // Don't tax if no taxCollector
+        if (taxCollector == 0x0) return true;       // Don't tax if no taxCollector
 
         /* calculate amount to tax */
         uint256 amountToTax = _value * taxPercent / 100;
         if (amountToTax == 0 && taxPercent > 0) amountToTax = 1;    // Minimum tax of 1
 
         /* transfer from tax payer to tax collector */
-        transferFrom(_taxPayer, _taxCollector, amountToTax);
+        transferFrom(_taxPayer, taxCollector, amountToTax);
 
-        Tax(_taxPayer, _taxCollector, amountToTax);
+        Tax(_taxPayer, taxCollector, amountToTax);
 
         return true;
     }
@@ -263,7 +262,7 @@ contract RobinhoodCoin is Ownable {
     function transfer(address _to, uint256 _value) public returns (bool) {
         transferFrom(msg.sender, _to, _value);
 
-        tax(msg.sender, government, _value);
+        tax(msg.sender, _value);
 
         if (balances[msg.sender] < wealthy) unmarkRichDude(msg.sender); // taxPayer is no longer wealthy?
         if (balances[_to] >= wealthy && !isMarkedRich(_to)) richDudes.push(_to); // Recipient is now wealthy?
