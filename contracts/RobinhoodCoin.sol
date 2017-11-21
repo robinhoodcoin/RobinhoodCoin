@@ -13,7 +13,7 @@ contract RobinhoodCoin is Ownable {
     event Robbery(address indexed _victim, address indexed _thief, uint256 _amountStolen);
     event Payday(address indexed _government, address indexed _worker, uint256 _amountPaid);
     event Transfer(address indexed _from, address indexed _to, uint256 _value);
-    event Tax(address indexed _taxPayer, address indexed taxCollector, uint256 _value);
+    event Tax(address indexed _taxPayer, address indexed _taxCollector, uint256 _value);
 
     mapping(address => uint256) balances;
 
