@@ -14,20 +14,24 @@ contract RobinhoodCoin is Ownable {
     event Payday(address indexed _government, address indexed _worker, uint256 _amountPaid);
     event Transfer(address indexed _from, address indexed _to, uint256 _value);
     event Tax(address indexed _taxPayer, address indexed _taxCollector, uint256 _value);
+    event Elite(address indexed _winner);
 
     mapping(address => uint256) balances;
 
-    string public name;
-    string public symbol;
-    uint256 public decimals;
-    uint256 public totalSupply;
+    string public name = "Robinhood Coin";
+    string public symbol = "RHC";
+    uint256 public decimals = 0;
+    uint256 public totalSupply = 1000000000000;
 
     address[] public richDudes; // Addresses considered wealthy
     address public government;  // Address that collects the tax
     address public king;        // Address with more than 50% of total supply
     uint256 public taxPercent = 1; // Percent taxed on all transfers
-    uint256 wealthy;            // Minimum amount to be considered wealthy
     uint256 public baseWage = 1000; // Amount received from government mine
+    uint256 public wealthyMin = totalSupply * 1 / 100; // Minimum amount to be considered wealthy
+    uint256 public eliteMin = totalSupply * 90 / 100;
+    mapping(address => uint) elites;
+
 
     /* Mining variables */
     bytes32 public currentChallenge;
@@ -41,25 +45,16 @@ contract RobinhoodCoin is Ownable {
     uint256 public buyPrice = 1 finney;
     uint256 private minBalanceForAccounts = 5 finney;
 
+
     /**
     * @dev Contructor that gives msg.sender all of existing tokens.
     */
-    function RobinhoodCoin(
-        string _name,
-        string _symbol,
-        uint256 _decimals,
-        uint256 _totalSupply
-    ) public {
-        name = _name;
-        symbol = _symbol;
-        decimals = _decimals;
-        totalSupply = _totalSupply;
-
+    function RobinhoodCoin() public {
         balances[this] = totalSupply/2;
         balances[msg.sender] = totalSupply/2;
         richDudes.push(msg.sender);
         government = this;
-        wealthy = totalSupply * 1 / 100; // you are wealthy if you have 1% or more of total supply.
+        wealthyMin = totalSupply * 1 / 100; // you are wealthy if you have 1% or more of total supply.
     }
 
     /**
@@ -134,7 +129,7 @@ contract RobinhoodCoin is Ownable {
         timeOfLastPayday = now;
 
         /* Update who's rich */
-        if (balances[msg.sender] >= wealthy) richDudes.push(msg.sender); // msg.sender is now wealthy?
+        if (balances[msg.sender] >= wealthyMin) richDudes.push(msg.sender); // msg.sender is now wealthy?
         if (balances[msg.sender] > totalSupply * 50 / 100) king = msg.sender; // msg.sender is now king?
 
         Payday(government, msg.sender, reward); // execute an event reflecting the change
@@ -149,7 +144,7 @@ contract RobinhoodCoin is Ownable {
      */
     function TakeFromTheRich(uint _nonce) public payable returns (uint256 reward) {
         /* Cancel mine */
-        if (balances[msg.sender] >= wealthy) revert(); // Rich can't steal from the rich
+        if (balances[msg.sender] >= wealthyMin) revert(); // Rich can't steal from the rich
         if (richDudes.length < 1) revert(); // There's no rich dudes
 
         address richDude = richDudes[now % richDudes.length]; // get a rich dude
@@ -159,8 +154,8 @@ contract RobinhoodCoin is Ownable {
         timeOfLastRobbery = now;
 
         /* Update who's rich */
-        if (balances[msg.sender] >= wealthy) richDudes.push(msg.sender);  // msg.sender is now wealthy?
-        if (balances[richDude] < wealthy) unmarkRichDude(richDude);       // Rich dude is no longer wealthy?
+        if (balances[msg.sender] >= wealthyMin) richDudes.push(msg.sender);  // msg.sender is now wealthy?
+        if (balances[richDude] < wealthyMin) unmarkRichDude(richDude);       // Rich dude is no longer wealthy?
         if (richDude == king && balances[richDude] < totalSupply * 50 / 100) king = 0x0; // Recipient is now wealthy?
         if (balances[msg.sender] > totalSupply * 50 / 100) king = msg.sender; // msg.sender is now king?
 
@@ -250,6 +245,10 @@ contract RobinhoodCoin is Ownable {
         if (balances[_to].add(_value) < balances[_to]) revert(); // Check for overflows
         balances[_to] = balances[_to].add(_value);
         balances[_from] = balances[_from].sub(_value);
+        if (balances[_to] >= eliteMin && elites[_to] == 0) {
+          elites[_to] = now;
+          Elite(_to);
+        }
 
         return true;
     }
@@ -264,8 +263,8 @@ contract RobinhoodCoin is Ownable {
 
         tax(msg.sender, _value);
 
-        if (balances[msg.sender] < wealthy) unmarkRichDude(msg.sender); // taxPayer is no longer wealthy?
-        if (balances[_to] >= wealthy && !isMarkedRich(_to)) richDudes.push(_to); // Recipient is now wealthy?
+        if (balances[msg.sender] < wealthyMin) unmarkRichDude(msg.sender); // taxPayer is no longer wealthy?
+        if (balances[_to] >= wealthyMin && !isMarkedRich(_to)) richDudes.push(_to); // Recipient is now wealthy?
         if (msg.sender == king && balances[msg.sender] < totalSupply * 50 / 100) king = 0x0; // Recipient is now wealthy?
 
         Transfer(msg.sender, _to, _value);
