@@ -30,7 +30,7 @@ contract RobinhoodCoin is Ownable {
     uint256 public baseWage = 1000; // Amount received from government mine
     uint256 public wealthyMin = totalSupply * 1 / 100; // Minimum amount to be considered wealthy
     uint256 public eliteMin = totalSupply * 90 / 100;
-    mapping(address => uint) elites;
+    mapping(address => uint) public elites;
 
 
     /* Mining variables */
