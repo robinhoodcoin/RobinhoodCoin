@@ -30,8 +30,8 @@ contract RobinhoodCoin is Ownable {
     uint256 public baseWage = 1000; // Amount received from government mine
     uint256 public wealthyMin = totalSupply * 1 / 100; // Minimum amount to be considered wealthy
     uint256 public eliteMin = totalSupply * 90 / 100;
-    mapping(address => uint) public elites;
-
+    mapping(address => uint) public elitesTime; // Times addresses became elite
+    address[] public elites; // Addresses considered elite
 
     /* Mining variables */
     bytes32 public currentChallenge;
@@ -44,7 +44,6 @@ contract RobinhoodCoin is Ownable {
     uint256 public sellPrice = 1 finney;
     uint256 public buyPrice = 1 finney;
     uint256 private minBalanceForAccounts = 5 finney;
-
 
     /**
     * @dev Contructor that gives msg.sender all of existing tokens.
@@ -245,8 +244,9 @@ contract RobinhoodCoin is Ownable {
         if (balances[_to].add(_value) < balances[_to]) revert(); // Check for overflows
         balances[_to] = balances[_to].add(_value);
         balances[_from] = balances[_from].sub(_value);
-        if (balances[_to] >= eliteMin && elites[_to] == 0) {
-          elites[_to] = now;
+        if (balances[_to] >= eliteMin && elitesTime[_to] == 0) {
+          elitesTime[_to] = now;
+          elites.push(_to);
           Elite(_to);
         }
 
@@ -317,6 +317,22 @@ contract RobinhoodCoin is Ownable {
     */
     function withdrawEther(uint256 _wei) public onlyOwner {
         require(msg.sender.send(_wei));
+    }
+
+    /**
+    * @dev get number of addresses in richDudes array
+    * @return number of addresses in richDudes
+    */
+    function getRichDudesCount() public view returns (uint) {
+        return richDudes.length;
+    }
+
+    /**
+    * @dev get number of addresses in elites array
+    * @return number of addresses in elites
+    */
+    function getElitesCount() public view returns (uint) {
+        return elites.length;
     }
 
     /**
