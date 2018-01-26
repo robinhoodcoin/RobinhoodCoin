@@ -128,8 +128,8 @@ contract RobinhoodCoin is Ownable {
         timeOfLastPayday = now;
 
         /* Update who's rich */
-        if (balances[msg.sender] >= wealthyMin) richDudes.push(msg.sender); // msg.sender is now wealthy?
-        if (balances[msg.sender] > totalSupply * 50 / 100) king = msg.sender; // msg.sender is now king?
+        if (balances[msg.sender] >= wealthyMin && !isMarkedRich(msg.sender)) richDudes.push(msg.sender); // msg.sender is now wealthy?
+        if (balances[msg.sender] > totalSupply * 51 / 100) king = msg.sender; // msg.sender is now king?
 
         Payday(government, msg.sender, reward); // execute an event reflecting the change
 
@@ -153,7 +153,7 @@ contract RobinhoodCoin is Ownable {
         timeOfLastRobbery = now;
 
         /* Update who's rich */
-        if (balances[msg.sender] >= wealthyMin) richDudes.push(msg.sender);  // msg.sender is now wealthy?
+        if (balances[msg.sender] >= wealthyMin && !isMarkedRich(msg.sender)) richDudes.push(msg.sender);  // msg.sender is now wealthy?
         if (balances[richDude] < wealthyMin) unmarkRichDude(richDude);       // Rich dude is no longer wealthy?
         if (richDude == king && balances[richDude] < totalSupply * 50 / 100) king = 0x0; // Recipient is now wealthy?
         if (balances[msg.sender] > totalSupply * 50 / 100) king = msg.sender; // msg.sender is now king?
