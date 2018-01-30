@@ -50,7 +50,7 @@ contract RobinhoodCoin is Ownable {
     /**
     * @dev Contructor that gives msg.sender all of existing tokens.
     */
-    function RobinhoodCoin(RobinhoodCoin _address) public {
+    function RobinhoodCoin() public {
         balances[this] = totalSupply/2;
         balances[msg.sender] = totalSupply/2;
         markAsRich(msg.sender);
