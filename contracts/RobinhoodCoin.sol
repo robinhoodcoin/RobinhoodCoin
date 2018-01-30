@@ -29,8 +29,10 @@ contract RobinhoodCoin is Ownable {
     uint256 public taxPercent = 1; // Percent taxed on all transfers
     uint256 public baseWage = 1000; // Amount received from government mine
     uint256 public wealthyMin = totalSupply * 1 / 100; // Minimum amount to be considered wealthy
-    uint256 public eliteMin = totalSupply * 90 / 100;
+    uint256 public kingMin = totalSupply * 80 / 100;
+    uint256 public eliteMin = totalSupply * 51 / 100;
     mapping(address => uint) public elitesTime; // Times addresses became elite
+    mapping(address => uint) public wealthyTime; // Times addresses became elite
     address[] public elites; // Addresses considered elite
 
     /* Mining variables */
@@ -128,8 +130,8 @@ contract RobinhoodCoin is Ownable {
         timeOfLastPayday = now;
 
         /* Update who's rich */
-        if (balances[msg.sender] >= wealthyMin && !isMarkedRich(msg.sender)) richDudes.push(msg.sender); // msg.sender is now wealthy?
-        if (balances[msg.sender] > totalSupply * 51 / 100) king = msg.sender; // msg.sender is now king?
+        if (balances[msg.sender] >= wealthyMin) markAsRich(msg.sender);
+        if (balances[msg.sender] > kingMin) king = msg.sender; // msg.sender is now king?
 
         Payday(government, msg.sender, reward); // execute an event reflecting the change
 
@@ -143,7 +145,7 @@ contract RobinhoodCoin is Ownable {
      */
     function TakeFromTheRich(uint _nonce) public payable returns (uint256 reward) {
         /* Cancel mine */
-        if (balances[msg.sender] >= wealthyMin) revert(); // Rich can't steal from the rich
+        if (isMarkedRich(msg.sender) == true) revert(); // Rich can't steal from the rich
         if (richDudes.length < 1) revert(); // There's no rich dudes
 
         address richDude = richDudes[now % richDudes.length]; // get a rich dude
@@ -153,7 +155,7 @@ contract RobinhoodCoin is Ownable {
         timeOfLastRobbery = now;
 
         /* Update who's rich */
-        if (balances[msg.sender] >= wealthyMin && !isMarkedRich(msg.sender)) richDudes.push(msg.sender);  // msg.sender is now wealthy?
+        if (balances[msg.sender] >= wealthyMin) markAsRich(msg.sender);
         if (balances[richDude] < wealthyMin) unmarkRichDude(richDude);       // Rich dude is no longer wealthy?
         if (richDude == king && balances[richDude] < totalSupply * 50 / 100) king = 0x0; // Recipient is now wealthy?
         if (balances[msg.sender] > totalSupply * 50 / 100) king = msg.sender; // msg.sender is now king?
@@ -172,11 +174,23 @@ contract RobinhoodCoin is Ownable {
      * @return bool if _address is on the list or not
      */
     function isMarkedRich(address _address) private view returns (bool) {
-        for (uint i = 0; i < richDudes.length; i++) {
-            if (richDudes[i] == _address) return true;
-        }
+        if (wealthyTime[_address] > 0) return true;
 
         return false;
+    }
+
+    /**
+    * @dev Add address to list of richDudes
+    * @param _address address The address to be added to richDudes array
+    * @return bool returns if address was added
+    */
+    function markAsRich(address _address) private returns (bool) {
+        if (isMarkedRich(_address)) return true;
+
+        wealthyTime[_address] = now;
+        richDudes.push(_address);
+
+        return true;
     }
 
     /**
@@ -198,6 +212,7 @@ contract RobinhoodCoin is Ownable {
 
         delete richDudes[richDudes.length-1];
         richDudes.length--;
+        wealthyTime[_address] = 0;
 
         return true;
     }
@@ -264,7 +279,7 @@ contract RobinhoodCoin is Ownable {
         tax(msg.sender, _value);
 
         if (balances[msg.sender] < wealthyMin) unmarkRichDude(msg.sender); // taxPayer is no longer wealthy?
-        if (balances[_to] >= wealthyMin && !isMarkedRich(_to)) richDudes.push(_to); // Recipient is now wealthy?
+        if (balances[_to] >= wealthyMin) markAsRich(_to); // Recipient is now wealthy?
         if (msg.sender == king && balances[msg.sender] < totalSupply * 50 / 100) king = 0x0; // Recipient is now wealthy?
 
         Transfer(msg.sender, _to, _value);
@@ -333,6 +348,20 @@ contract RobinhoodCoin is Ownable {
     */
     function getElitesCount() public view returns (uint) {
         return elites.length;
+    }
+
+    /**
+    * @dev get role of an address
+    * @param _address address address to be checked
+    * @return role string
+    */
+    function getRole(address _address) public view returns (string) {
+        if (_address == government) return "government";
+        if (_address == king) return "king";
+        if (elitesTime[_address] != 0) return "elite";
+        if (wealthyTime[_address] != 0) return "wealthy";
+
+        return "peasant";
     }
 
     /**
