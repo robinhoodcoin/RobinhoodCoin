@@ -16,7 +16,7 @@ contract RobinhoodCoin is Ownable {
     event Tax(address indexed _taxPayer, address indexed _taxCollector, uint256 _value);
     event Elite(address indexed _winner);
 
-    mapping(address => uint256) balances;
+    mapping(address => uint256) public balances;
 
     string public name = "Robinhood Coin";
     string public symbol = "RHC";
@@ -24,16 +24,16 @@ contract RobinhoodCoin is Ownable {
     uint256 public totalSupply = 1000000000000;
 
     address[] public richDudes; // Addresses considered wealthy
+    address[] public elites; // Addresses considered elite
     address public government;  // Address that collects the tax
     address public king;        // Address with more than 50% of total supply
     uint256 public taxPercent = 1; // Percent taxed on all transfers
     uint256 public baseWage = 1000; // Amount received from government mine
     uint256 public wealthyMin = totalSupply * 1 / 100; // Minimum amount to be considered wealthy
-    uint256 public kingMin = totalSupply * 80 / 100;
-    uint256 public eliteMin = totalSupply * 51 / 100;
-    mapping(address => uint) public elitesTime; // Times addresses became elite
+    uint256 public kingMin = totalSupply * 51 / 100;
+    uint256 public eliteMin = totalSupply * 80 / 100;
     mapping(address => uint) public wealthyTime; // Times addresses became elite
-    address[] public elites; // Addresses considered elite
+    mapping(address => uint) public elitesTime; // Times addresses became elite
 
     /* Mining variables */
     bytes32 public currentChallenge;
@@ -45,7 +45,7 @@ contract RobinhoodCoin is Ownable {
     /* exchange prices for token*/
     uint256 public sellPrice = 1 finney;
     uint256 public buyPrice = 1 finney;
-    uint256 private minBalanceForAccounts = 5 finney;
+    uint256 public minBalanceForAccounts = 5 finney;
 
     /**
     * @dev Contructor that gives msg.sender all of existing tokens.
